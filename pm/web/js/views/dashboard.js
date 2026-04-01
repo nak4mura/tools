@@ -1,150 +1,142 @@
-import { el, clearAndAppend, arcPath } from '../render.js';
-import { buildProcessSummary, getMemberMonthlyHours, calculateOverloadRate, isOverloaded, getFiscalMonths } from '../calc.js';
-import { getMonthlyWorkingHours, buildHolidaySet } from '../holiday.js';
+/* globals YM */
+(function (root) {
+  'use strict';
+  var el = root.YM.render.el;
+  var clearAndAppend = root.YM.render.clearAndAppend;
+  var arcPath = root.YM.render.arcPath;
+  var calc = root.YM.calc;
+  var holiday = root.YM.holiday;
 
-export function render(container, state) {
-  const months = getFiscalMonths(state.config.fiscalYear, state.config.fiscalStartMonth);
-  const holidaySet = buildHolidaySet(state.holidays);
-  const processSummary = buildProcessSummary(state);
-  const grandTotal = processSummary.reduce((s, r) => s + r.total, 0);
+  function render(container, state) {
+    var months = calc.getFiscalMonths(state.config.fiscalYear, state.config.fiscalStartMonth);
+    var holidaySet = holiday.buildHolidaySet(state.holidays);
+    var processSummary = calc.buildProcessSummary(state);
+    var grandTotal = processSummary.reduce(function (s, r) { return s + r.total; }, 0);
 
-  // プロジェクト概要カード
-  const overviewCard = el('div', { class: 'card' },
-    el('h3', { class: 'card-title' }, 'プロジェクト概要'),
-    el('div', { class: 'overview-grid' },
-      overviewItem('担当者数', `${state.members.length}名`),
-      overviewItem('総工数', `${grandTotal}h`),
-      overviewItem('工程数', `${state.processes.length}件`),
-      overviewItem('対象年度', `${state.config.fiscalYear}年度`),
-      overviewItem('年度開始月', `${state.config.fiscalStartMonth}月`),
-      overviewItem('標準稼働時間/日', `${state.config.hoursPerDay}h`),
-    ),
-  );
-
-  // 過積載警告
-  const warnings = [];
-  state.members.forEach((member) => {
-    months.forEach((m) => {
-      const actual = getMemberMonthlyHours(state, member.id, m);
-      if (actual === 0) return;
-      const std = getMonthlyWorkingHours(m, state.config, holidaySet);
-      const rate = calculateOverloadRate(actual, std);
-      if (std > 0 && isOverloaded(rate, state.config.overloadThreshold)) {
-        warnings.push({ member, month: m, actual, std, rate });
-      }
-    });
-  });
-
-  const warningItems = warnings.map((w) =>
-    el('div', { class: 'warning-chip' },
-      `⚠ ${w.member.name} ${formatMonth(w.month)}: ${w.actual}h / ${w.std}h (${Math.round(w.rate * 100)}%)`,
-    ),
-  );
-
-  const warningCard = el('div', { class: 'card' },
-    el('h3', { class: 'card-title' }, `過積載警告 (${warnings.length}件)`),
-    warnings.length === 0
-      ? el('p', { class: 'hint' }, '過積載なし')
-      : el('div', { class: 'warning-list' }, ...warningItems),
-  );
-
-  // 工程別円グラフ
-  const pieCard = el('div', { class: 'card' },
-    el('h3', { class: 'card-title' }, '工程別工数比率'),
-    grandTotal > 0
-      ? buildPieChart(processSummary, state.processes, grandTotal)
-      : el('p', { class: 'hint' }, 'データがありません'),
-  );
-
-  // 担当者別バーチャート
-  const memberTotals = state.members.map((m) => ({
-    name: m.name,
-    total: state.workload
-      .filter((r) => r.memberId === m.id)
-      .reduce((s, r) => s + Object.values(r.hours).reduce((a, h) => a + (h || 0), 0), 0),
-  })).filter((m) => m.total > 0);
-
-  const barCard = el('div', { class: 'card' },
-    el('h3', { class: 'card-title' }, '担当者別総工数'),
-    memberTotals.length > 0
-      ? buildBarChart(memberTotals)
-      : el('p', { class: 'hint' }, 'データがありません'),
-  );
-
-  const wrapper = el('div', { class: 'view-container' },
-    el('div', { class: 'view-header' }, el('h2', {}, 'ダッシュボード')),
-    el('div', { class: 'dashboard-grid' },
-      overviewCard,
-      warningCard,
-      pieCard,
-      barCard,
-    ),
-  );
-
-  clearAndAppend(container, wrapper);
-}
-
-function overviewItem(label, value) {
-  return el('div', { class: 'overview-item' },
-    el('span', { class: 'overview-label' }, label),
-    el('span', { class: 'overview-value' }, value),
-  );
-}
-
-function buildPieChart(summary, processes, total) {
-  const cx = 100, cy = 100, r = 80;
-  let currentAngle = -Math.PI / 2; // 12時から開始
-
-  const paths = [];
-  const legendItems = [];
-
-  summary.forEach((row) => {
-    if (row.total === 0) return;
-    const proc = processes.find((p) => p.id === row.processId);
-    const color = proc ? proc.color : '#ccc';
-    const ratio = row.total / total;
-    const angle = ratio * 2 * Math.PI;
-    const endAngle = currentAngle + angle;
-
-    paths.push(el('path', { d: arcPath(cx, cy, r, currentAngle, endAngle), fill: color, stroke: '#fff', 'stroke-width': '2' }));
-    currentAngle = endAngle;
-
-    legendItems.push(el('div', { class: 'legend-item' },
-      el('span', { class: 'legend-dot', style: { background: color } }),
-      `${row.processName}: ${row.total}h (${Math.round(ratio * 100)}%)`,
-    ));
-  });
-
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('viewBox', '0 0 200 200');
-  svg.setAttribute('width', '200');
-  svg.setAttribute('height', '200');
-  svg.setAttribute('class', 'pie-chart');
-  paths.forEach((p) => svg.appendChild(p));
-
-  return el('div', { class: 'chart-container' },
-    svg,
-    el('div', { class: 'legend' }, ...legendItems),
-  );
-}
-
-function buildBarChart(memberTotals) {
-  const max = Math.max(...memberTotals.map((m) => m.total));
-  const bars = memberTotals.map((m) => {
-    const pct = max > 0 ? (m.total / max) * 100 : 0;
-    return el('div', { class: 'bar-row' },
-      el('span', { class: 'bar-name' }, m.name),
-      el('div', { class: 'bar-track' },
-        el('div', { class: 'bar-fill', style: { width: `${pct}%` } }),
-        el('span', { class: 'bar-value' }, `${m.total}h`),
-      ),
+    // プロジェクト概要
+    var overviewCard = el('div', { class: 'card' },
+      el('h3', { class: 'card-title' }, 'プロジェクト概要'),
+      el('div', { class: 'overview-grid' },
+        ov('担当者数', state.members.length + '名'),
+        ov('総工数', grandTotal + 'h'),
+        ov('工程数', state.processes.length + '件'),
+        ov('対象年度', state.config.fiscalYear + '年度'),
+        ov('年度開始月', state.config.fiscalStartMonth + '月'),
+        ov('標準稼働時間/日', state.config.hoursPerDay + 'h')
+      )
     );
-  });
-  return el('div', { class: 'bar-chart' }, ...bars);
-}
 
-function formatMonth(yearMonth) {
-  const [y, m] = yearMonth.split('/');
-  return `${y}年${m}月`;
-}
+    // 過積載警告
+    var warnings = [];
+    state.members.forEach(function (member) {
+      months.forEach(function (m) {
+        var actual = calc.getMemberMonthlyHours(state, member.id, m);
+        if (!actual) return;
+        var std = holiday.getMonthlyWorkingHours(m, state.config, holidaySet);
+        var rate = calc.calculateOverloadRate(actual, std);
+        if (std > 0 && calc.isOverloaded(rate, state.config.overloadThreshold)) {
+          warnings.push({ member: member, month: m, actual: actual, std: std, rate: rate });
+        }
+      });
+    });
+
+    var warningItems = warnings.map(function (w) {
+      return el('div', { class: 'warning-chip' },
+        '⚠ ' + w.member.name + ' ' + fmtMonth(w.month) + ': ' + w.actual + 'h / ' + w.std + 'h (' + Math.round(w.rate * 100) + '%)'
+      );
+    });
+
+    var warningCard = el('div', { class: 'card' },
+      el('h3', { class: 'card-title' }, '過積載警告 (' + warnings.length + '件)'),
+      warnings.length ? el.apply(null, ['div', { class: 'warning-list' }].concat(warningItems)) : el('p', { class: 'hint' }, '過積載なし')
+    );
+
+    // 工程別円グラフ
+    var pieCard = el('div', { class: 'card' },
+      el('h3', { class: 'card-title' }, '工程別工数比率'),
+      grandTotal > 0 ? buildPieChart(processSummary, state.processes, grandTotal) : el('p', { class: 'hint' }, 'データがありません')
+    );
+
+    // 担当者別バーチャート
+    var memberTotals = state.members.map(function (m) {
+      return {
+        name: m.name,
+        total: state.workload.filter(function (r) { return r.memberId === m.id; })
+          .reduce(function (s, r) { return s + Object.values(r.hours).reduce(function (a, h) { return a + (h || 0); }, 0); }, 0),
+      };
+    }).filter(function (m) { return m.total > 0; });
+
+    var barCard = el('div', { class: 'card' },
+      el('h3', { class: 'card-title' }, '担当者別総工数'),
+      memberTotals.length ? buildBarChart(memberTotals) : el('p', { class: 'hint' }, 'データがありません')
+    );
+
+    clearAndAppend(container, el('div', { class: 'view-container' },
+      el('div', { class: 'view-header' }, el('h2', {}, 'ダッシュボード')),
+      el('div', { class: 'dashboard-grid' }, overviewCard, warningCard, pieCard, barCard)
+    ));
+  }
+
+  function ov(label, value) {
+    return el('div', { class: 'overview-item' },
+      el('span', { class: 'overview-label' }, label),
+      el('span', { class: 'overview-value' }, value)
+    );
+  }
+
+  function buildPieChart(summary, processes, total) {
+    var cx = 100, cy = 100, r = 80;
+    var current = -Math.PI / 2;
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 200 200');
+    svg.setAttribute('width', '180');
+    svg.setAttribute('height', '180');
+    svg.setAttribute('class', 'pie-chart');
+
+    var legendItems = [];
+    summary.forEach(function (row) {
+      if (!row.total) return;
+      var proc = processes.find(function (p) { return p.id === row.processId; });
+      var color = proc ? proc.color : '#ccc';
+      var ratio = row.total / total;
+      var end = current + ratio * 2 * Math.PI;
+      var path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('d', arcPath(cx, cy, r, current, end));
+      path.setAttribute('fill', color);
+      path.setAttribute('stroke', '#fff');
+      path.setAttribute('stroke-width', '2');
+      svg.appendChild(path);
+      current = end;
+      legendItems.push(el('div', { class: 'legend-item' },
+        el('span', { class: 'legend-dot', style: { background: color } }),
+        row.processName + ': ' + row.total + 'h (' + Math.round(ratio * 100) + '%)'
+      ));
+    });
+
+    return el.apply(null, ['div', { class: 'chart-container' }, svg].concat([el.apply(null, ['div', { class: 'legend' }].concat(legendItems))]));
+  }
+
+  function buildBarChart(memberTotals) {
+    var max = Math.max.apply(null, memberTotals.map(function (m) { return m.total; }));
+    var bars = memberTotals.map(function (m) {
+      var pct = max > 0 ? (m.total / max) * 100 : 0;
+      return el('div', { class: 'bar-row' },
+        el('span', { class: 'bar-name' }, m.name),
+        el('div', { class: 'bar-track' },
+          el('div', { class: 'bar-fill', style: { width: pct + '%' } }),
+          el('span', { class: 'bar-value' }, m.total + 'h')
+        )
+      );
+    });
+    return el.apply(null, ['div', { class: 'bar-chart' }].concat(bars));
+  }
+
+  function fmtMonth(yearMonth) {
+    var parts = yearMonth.split('/');
+    return parts[0] + '年' + parts[1] + '月';
+  }
+
+  root.YM.views = root.YM.views || {};
+  root.YM.views.dashboard = { render: render };
+}(typeof globalThis !== 'undefined' ? globalThis : this));
