@@ -1,0 +1,350 @@
+/* ===== リセット & ベース ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+  font-size: 14px;
+  background: #f5f6fa;
+  color: #333;
+  min-height: 100vh;
+}
+
+/* ===== アプリシェル ===== */
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ===== ヘッダー ===== */
+#app-header {
+  background: #1a5276;
+  color: #fff;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+#app-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.header-tools {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ===== タブナビゲーション ===== */
+#tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  background: #21618c;
+  padding: 4px 8px 0;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  background: #2e86c1;
+  color: #d4e6f1;
+  border: none;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 4px 4px 0 0;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.tab-btn:hover { background: #3498db; color: #fff; }
+.tab-btn.active { background: #f5f6fa; color: #1a5276; font-weight: 600; }
+
+/* ===== メインコンテンツ ===== */
+#app-content {
+  flex: 1;
+  padding: 0;
+  background: #f5f6fa;
+}
+
+/* ===== ビューコンテナ共通 ===== */
+.view-container { padding: 20px; }
+
+.view-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.view-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a5276;
+}
+
+/* ===== ボタン ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: opacity 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.btn:active { transform: scale(0.97); }
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: #2e86c1; color: #fff; }
+.btn-secondary { background: #85929e; color: #fff; }
+.btn-danger { background: #e74c3c; color: #fff; }
+.btn-sm { padding: 3px 8px; font-size: 12px; }
+
+.btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ===== テーブル共通 ===== */
+.table-wrapper { overflow-x: auto; }
+
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.data-table th {
+  background: #d6eaf8;
+  color: #1a5276;
+  font-weight: 600;
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 2px solid #aed6f1;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.data-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.data-table tr:hover { background: #f0f8ff; }
+.data-table tr:last-child td { border-bottom: none; }
+
+/* ===== フォーム ===== */
+.cell-input {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.cell-input.narrow { width: 80px; }
+
+.cell-select {
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-size: 13px;
+  background: #fff;
+  width: 100%;
+}
+
+/* ===== メイン入力テーブル ===== */
+.main-input-table .col-member { min-width: 130px; }
+.main-input-table .col-process { min-width: 100px; }
+.main-input-table .col-month { min-width: 64px; text-align: center; }
+.main-input-table .col-total { min-width: 64px; text-align: center; font-weight: 600; }
+.main-input-table .col-actions { min-width: 100px; text-align: center; white-space: nowrap; }
+
+.hour-input {
+  width: 58px;
+  text-align: right;
+  padding: 4px 5px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.hour-input:focus { outline: none; border-color: #2e86c1; box-shadow: 0 0 0 2px rgba(46,134,193,0.2); }
+
+.total-cell { text-align: center; font-weight: 600; }
+
+/* ===== 予測テーブル ===== */
+.forecast-table .col-month { min-width: 64px; text-align: center; font-size: 12px; }
+
+.cell-complete {
+  background: #d5f5e3 !important;
+  color: #1e8449;
+  font-weight: 700;
+}
+
+.cell-idle { color: #aaa; }
+
+.completion-done {
+  text-align: center;
+  font-weight: 700;
+  color: #1e8449;
+}
+
+.completion-pending {
+  text-align: center;
+  font-weight: 500;
+  color: #e74c3c;
+}
+
+.footer-row { background: #ecf0f1 !important; font-weight: 700; }
+.footer-label { font-size: 12px; color: #666; }
+.footer-cell { text-align: center; }
+
+/* ===== ガントチャート / タイムライン ===== */
+.gantt-chart {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  overflow-x: auto;
+  padding: 12px 16px;
+  gap: 0;
+}
+
+.gantt-label-col {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a5276;
+}
+
+.gantt-process-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gantt-header-cell {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #777;
+  padding: 4px 2px;
+  border-bottom: 2px solid #dde;
+}
+
+.gantt-bar-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 2px;
+  min-height: 48px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.gantt-bar-active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.gantt-bar-fill {
+  width: 100%;
+  border-radius: 3px;
+  min-height: 6px;
+}
+
+.gantt-hours-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #555;
+  white-space: nowrap;
+}
+
+.gantt-bar-complete {
+  position: relative;
+}
+
+.gantt-bar-complete::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: #27ae60;
+  border-radius: 50%;
+}
+
+.gantt-completion-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* ===== サマリーカード ===== */
+.summary-cards {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  padding: 14px 18px;
+  min-width: 180px;
+}
+
+.summary-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a5276;
+  margin-bottom: 6px;
+}
+
+.summary-card-effort {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.summary-card-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e8449;
+}
+
+.summary-card-date.pending {
+  color: #e74c3c;
+}
+
+/* ===== ヒント ===== */
+.hint { font-size: 12px; color: #888; margin-bottom: 10px; }
+.empty-msg { text-align: center; color: #aaa; padding: 20px; }
+
+/* ===== レスポンシブ ===== */
+@media (max-width: 768px) {
+  .view-header { flex-direction: column; align-items: flex-start; }
+  .summary-cards { flex-direction: column; }
+}
