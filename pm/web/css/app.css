@@ -217,26 +217,110 @@ td.overloaded .hour-input { color: #c0392b; font-weight: 700; }
 .footer-cell { text-align: center; }
 
 /* ===== ガントチャート ===== */
-.gantt-table .col-month { min-width: 90px; padding: 4px 6px; }
+.gantt-chart {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  overflow-x: auto;
+  padding: 12px 16px;
+}
 
-.gantt-cell { position: relative; padding: 4px 6px !important; }
-.gantt-bar {
-  height: 18px;
+.gantt-row {
+  display: flex;
+  align-items: stretch;
+  min-height: 56px;
+}
+
+.gantt-header-row {
+  min-height: 32px;
+  border-bottom: 2px solid #dde;
+  margin-bottom: 4px;
+  align-items: center;
+}
+
+.gantt-data-row {
+  border-bottom: 1px solid #f0f0f0;
+}
+.gantt-data-row:last-child { border-bottom: none; }
+
+.gantt-label-col {
+  min-width: 140px;
+  max-width: 140px;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.gantt-process-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.gantt-timeline {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.gantt-header-cell {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #777;
+  padding: 4px 2px;
+}
+
+/* 各月セル */
+.gantt-bar-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 2px;
+  min-height: 48px;
+}
+
+.gantt-bar-active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.gantt-bar-fill {
+  width: 100%;
   border-radius: 3px;
-  min-width: 2px;
-  display: inline-block;
-  vertical-align: middle;
-  transition: width 0.2s;
+  min-height: 6px;
+  transition: height 0.2s;
 }
 
-.gantt-label {
-  font-size: 11px;
+.gantt-hours-label {
+  font-size: 10px;
+  font-weight: 600;
   color: #555;
-  margin-left: 4px;
-  vertical-align: middle;
+  white-space: nowrap;
 }
 
-.gantt-cell.overloaded .gantt-label { color: #c0392b; font-weight: 700; }
+/* 橋渡し（データのない中間月） */
+.gantt-bar-bridge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gantt-bridge-line {
+  width: 100%;
+  height: 0;
+  border-top: 2px dashed #ccc;
+}
+
+.gantt-bar-empty {
+  /* 空 — 透明 */
+}
 
 .empty-msg { text-align: center; color: #aaa; padding: 20px; }
 

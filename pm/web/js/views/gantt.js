@@ -4,61 +4,96 @@
   var el = root.YM.render.el;
   var clearAndAppend = root.YM.render.clearAndAppend;
   var calc = root.YM.calc;
-  var holiday = root.YM.holiday;
 
   function render(container, state) {
     var months = calc.getFiscalMonths(state.config.fiscalYear, state.config.fiscalStartMonth);
-    var holidaySet = holiday.buildHolidaySet(state.holidays);
+    var processSummary = calc.buildProcessSummary(state);
+    var processes = state.processes.slice().sort(function (a, b) { return a.order - b.order; });
 
-    var allHours = state.workload.reduce(function (arr, row) {
-      return arr.concat(Object.values(row.hours).filter(Boolean));
-    }, []);
-    var maxHours = allHours.length > 0 ? Math.max.apply(null, allHours) : 1;
-
-    var thead = el('thead', {}, el.apply(null, ['tr', {}]
-      .concat([el('th', { class: 'col-member' }, '担当者'), el('th', { class: 'col-process' }, '工程')])
-      .concat(months.map(function (m) { return el('th', { class: 'col-month' }, m.split('/')[1] + '月'); }))
-    ));
-
-    var tbody = el('tbody', {});
-    state.workload.forEach(function (row) {
-      var member = state.members.find(function (m) { return m.id === row.memberId; });
-      var process = state.processes.find(function (p) { return p.id === row.processId; });
-      var color = process ? process.color : '#ccc';
-
-      var monthCells = months.map(function (m) {
-        var hours = row.hours[m] || 0;
-        var std = holiday.getMonthlyWorkingHours(m, state.config, holidaySet);
-        var rate = calc.calculateOverloadRate(hours, std);
-        var overloaded = std > 0 && calc.isOverloaded(rate, state.config.overloadThreshold);
-        var pct = maxHours > 0 ? Math.min((hours / maxHours) * 100, 100) : 0;
-
-        var bar = el('div', { class: 'gantt-bar', style: { width: pct + '%', background: overloaded ? '#e74c3c' : color } });
-        var td = el('td', { class: 'col-month gantt-cell' + (overloaded ? ' overloaded' : '') }, bar);
-        if (hours > 0) {
-          td.appendChild(el('span', { class: 'gantt-label' }, String(hours)));
-        }
-        return td;
+    // 全工程の最大月別工数（バー高さの基準）
+    var maxHours = 0;
+    processSummary.forEach(function (ps) {
+      months.forEach(function (m) {
+        var h = ps.byMonth[m] || 0;
+        if (h > maxHours) maxHours = h;
       });
+    });
+    if (maxHours === 0) maxHours = 1;
 
-      tbody.appendChild(el.apply(null, ['tr', { style: { borderLeft: '4px solid ' + color } }]
-        .concat([
-          el('td', { class: 'col-member' }, member ? member.name : row.memberId),
-          el('td', { class: 'col-process' }, process ? process.name : row.processId),
-        ])
-        .concat(monthCells)
-      ));
+    // ヘッダー（月ラベル）
+    var headerCells = months.map(function (m) {
+      return el('div', { class: 'gantt-header-cell' }, m.split('/')[1] + '月');
     });
 
-    if (!state.workload.length) {
-      tbody.appendChild(el('tr', {}, el('td', { colspan: String(months.length + 2), class: 'empty-msg' }, 'データがありません')));
-    }
+    var header = el('div', { class: 'gantt-row gantt-header-row' },
+      el('div', { class: 'gantt-label-col' }, '工程'),
+      el.apply(null, ['div', { class: 'gantt-timeline' }].concat(headerCells))
+    );
 
-    clearAndAppend(container, el('div', { class: 'view-container' },
+    // 工程行
+    var rows = processes.map(function (proc) {
+      var ps = processSummary.find(function (s) { return s.processId === proc.id; });
+      var color = proc.color;
+
+      // この工程でデータがある月の範囲を求める
+      var firstIdx = -1;
+      var lastIdx = -1;
+      months.forEach(function (m, i) {
+        if (ps && (ps.byMonth[m] || 0) > 0) {
+          if (firstIdx === -1) firstIdx = i;
+          lastIdx = i;
+        }
+      });
+
+      // タイムラインセル
+      var timelineCells = months.map(function (m, i) {
+        var hours = (ps && ps.byMonth[m]) ? ps.byMonth[m] : 0;
+        var inRange = firstIdx !== -1 && i >= firstIdx && i <= lastIdx;
+        var barHeight = hours > 0 ? Math.max(Math.round((hours / maxHours) * 36), 6) : 0;
+
+        var cellContent;
+        if (hours > 0) {
+          // データがある月: 塗りつぶしバー + ラベル
+          cellContent = el('div', { class: 'gantt-bar-cell gantt-bar-active' },
+            el('div', { class: 'gantt-bar-fill', style: { height: barHeight + 'px', background: color } }),
+            el('span', { class: 'gantt-hours-label' }, hours + 'h')
+          );
+        } else if (inRange) {
+          // データがないが範囲内: 橋渡し表示
+          cellContent = el('div', { class: 'gantt-bar-cell gantt-bar-bridge' },
+            el('div', { class: 'gantt-bridge-line', style: { borderColor: color } })
+          );
+        } else {
+          // 範囲外: 空セル
+          cellContent = el('div', { class: 'gantt-bar-cell gantt-bar-empty' });
+        }
+
+        return cellContent;
+      });
+
+      var total = ps ? ps.total : 0;
+      var labelText = proc.name + (total > 0 ? ' (' + total + 'h)' : '');
+
+      return el('div', { class: 'gantt-row gantt-data-row' },
+        el('div', { class: 'gantt-label-col', style: { borderLeft: '4px solid ' + color } },
+          el('span', { class: 'gantt-process-name' }, labelText)
+        ),
+        el.apply(null, ['div', { class: 'gantt-timeline' }].concat(timelineCells))
+      );
+    });
+
+    // 空データメッセージ
+    var hasData = processSummary.some(function (ps) { return ps.total > 0; });
+
+    var wrapper = el('div', { class: 'view-container' },
       el('div', { class: 'view-header' }, el('h2', {}, 'ガントチャート')),
-      el('p', { class: 'hint' }, 'バー幅は最大工数を基準に表示。赤は過積載を示します。'),
-      el('div', { class: 'table-wrapper' }, el('table', { class: 'data-table gantt-table' }, thead, tbody))
-    ));
+      hasData
+        ? el('p', { class: 'hint' }, 'バーの高さは最大工数を基準に表示。破線は工程の継続期間を示します。')
+        : el('p', { class: 'hint' }, 'データがありません。メイン入力タブからデータを追加してください。'),
+      el.apply(null, ['div', { class: 'gantt-chart' }, header].concat(rows))
+    );
+
+    clearAndAppend(container, wrapper);
   }
 
   root.YM.views = root.YM.views || {};
